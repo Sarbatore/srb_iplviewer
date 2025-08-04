@@ -7,7 +7,7 @@ local function LoadJSONFile(jsonPath)
     end
     
     local jsonData = LoadResourceFile(GetCurrentResourceName(), jsonPath)
-    if (not jsonDataà then
+    if (not jsonData) then
         return {}
     end
 

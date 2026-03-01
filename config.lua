@@ -2,4 +2,4 @@ Config = {}
 
 Config.Command = "ipl"
 
-Config.Radius = 100.0
+Config.Radius = 25.0

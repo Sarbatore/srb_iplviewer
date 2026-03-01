@@ -1,5 +1,7 @@
 
-local IsEnabled = false
+local IsActive = false
+local IplsToDraw = {}
+local TextsCache = {}
 
 local function LoadJSONFile(jsonPath)
     if (type(jsonPath) ~= "string") then
@@ -28,24 +30,23 @@ end
 
 local function GetTextSize(text, scale)
     local len = string.len(text)
-    local width = len * (scale * 0.008)
-    local height = len * (scale * 0.005)
+    local width = len * (scale * 0.007)
+    local height = len * (scale * 0.006)
     return width, height
 end
 
-local function DrawText(text, x, y, r, g, b)
-    x = x or 0
-    y = y or 0
+local function DrawText(text, x, y, r, g, b, a)
     text = tostring(text)
-    r = r or 255
-    g = g or 255
-    b = b or 255
+
+    if (not TextsCache[text]) then
+        TextsCache[text] = VarString(10, "LITERAL_STRING", text)
+    end
 
     SetTextScale(0.35, 0.35)
     SetTextFontForCurrentCommand(1)
-    SetTextColor(r, g, b, 255)
-    SetTextCentre(1)
-    DisplayText(CreateVarString(10, "LITERAL_STRING", text), x, y)		
+    SetTextColor(r or 255, g or 255, b or 255, a or 255)
+    SetTextCentre(true)
+    DisplayText(TextsCache[text], x or 0.0, y or 0.0)
 end
 
 local function ToggleIPL(hash)
@@ -56,81 +57,86 @@ local function ToggleIPL(hash)
     end
 end
 
-local function EnableIPLViewer(enable)
-    if (enable == IsEnabled) then
-        return
-    end
-    
-    IsEnabled = enable
-
-    if (enable) then
+function EnableIPLViewer()
+    if (IsActive) then return end
+    IsActive = true
+    CreateThread(function()
         local ipls = LoadJSONFile("data/ipls.json")
-        local iplsToDraw = {}
-
-        CreateThread(function()
-            while IsEnabled do
-                for i = #ipls, 1, -1 do
-                    local ipl = ipls[i]
-                    if (#(GetEntityCoords(PlayerPedId()) - vector3(ipl.x, ipl.y, ipl.z)) <= Config.Radius) then
-                        table.insert(iplsToDraw, {name = ipl.name, hash = ipl.hash, x = ipl.x, y = ipl.y, z = ipl.z})
-                        table.remove(ipls, i)
-                    end
+        while IsActive do
+            for i = #ipls, 1, -1 do
+                local ipl = ipls[i]
+                if (#(GetEntityCoords(PlayerPedId()) - vector3(ipl.x, ipl.y, ipl.z)) <= Config.Radius) then
+                    table.insert(IplsToDraw, {name = ipl.name, hash = ipl.hash, x = ipl.x, y = ipl.y, z = ipl.z})
+                    table.remove(ipls, i)
                 end
-                for i = #iplsToDraw, 1, -1 do
-                    local ipl = iplsToDraw[i]
-                    if (#(GetEntityCoords(PlayerPedId()) - vector3(ipl.x, ipl.y, ipl.z)) > Config.Radius) then
-                        table.insert(ipls, {name = ipl.name, hash = ipl.hash, x = ipl.x, y = ipl.y, z = ipl.z})
-                        table.remove(iplsToDraw, i)
-                    end
-                end
-                Wait(2000)
             end
-        end)
-
-        CreateThread(function()
-            while IsEnabled do
-                if (IsControlPressed(0, `INPUT_PC_FREE_LOOK`)) then
-                    SetMouseCursorThisFrame()
-                    DisableControlAction(0, `INPUT_ATTACK`, true)
+            for i = #IplsToDraw, 1, -1 do
+                local ipl = IplsToDraw[i]
+                if (#(GetEntityCoords(PlayerPedId()) - vector3(ipl.x, ipl.y, ipl.z)) > Config.Radius) then
+                    table.insert(ipls, {name = ipl.name, hash = ipl.hash, x = ipl.x, y = ipl.y, z = ipl.z})
+                    table.remove(IplsToDraw, i)
                 end
-                
-                local alreadyHover = false
-                for i = #iplsToDraw, 1, -1 do
-                    local ipl = iplsToDraw[i]
-                    local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(ipl.x, ipl.y, ipl.z)
-                    if (onScreen) then
-                        local cursorPosition = GetCursorScreenPosition()
-                        local displayText = ipl.hashname ~= "" and ipl.hashname or ipl.hash
-                        
-                        local textWidth, textHeight = GetTextSize(displayText, 0.35)
-                        local isHovered = false
-                        if (not alreadyHover) then
-                            isHovered = cursorPosition.x >= (screenX - textWidth / 2) and cursorPosition.y >= screenY and cursorPosition.x < screenX + (textWidth + textWidth / 2) and cursorPosition.y < screenY + textHeight
-                            if (isHovered) then
-                                alreadyHover = true
-                            end
-                        end
+            end
+            Wait(1000)
+        end
+    end)
 
+    CreateThread(function()
+        while IsActive do
+            if (IsControlPressed(0, `INPUT_PC_FREE_LOOK`)) then
+                SetMouseCursorThisFrame()
+                DisableControlAction(0, `INPUT_ATTACK`, true)
+            end
+            
+            local alreadyHover = false
+            for i = #IplsToDraw, 1, -1 do
+                local ipl = IplsToDraw[i]
+                local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(ipl.x, ipl.y, ipl.z)
+                if (onScreen) then
+                    local cursorPosition = GetCursorScreenPosition()
+                    local displayText = ipl.hashname ~= "" and ipl.hashname or ipl.hash
+                    
+                    local textWidth, textHeight = GetTextSize(displayText, 0.35)
+                    local isHovered = false
+                    if (not alreadyHover) then
+                        isHovered = cursorPosition.x >= (screenX - textWidth) and cursorPosition.y >= screenY and cursorPosition.x < (screenX + textWidth) and cursorPosition.y < (screenY + textHeight)
                         if (isHovered) then
-                            DrawText(displayText, screenX, screenY, 0, 0, 255)
-                        elseif (IsIplActiveHash(ipl.hash)) then
-                            DrawText(displayText, screenX, screenY, 0, 255, 0)
-                        else
-                            DrawText(displayText, screenX, screenY, 255, 0, 0)
-                        end
-                        
-                        if (isHovered and IsDisabledControlJustPressed(0, `INPUT_ATTACK`)) then
-                            ToggleIPL(ipl.hash)
-                            print(displayText)
+                            alreadyHover = true
                         end
                     end
+
+                    if (IsIplActiveHash(ipl.hash)) then
+                        DrawText(displayText, screenX, screenY, 0, 255, 0, isHovered and 255 or 200)
+                    else
+                        DrawText(displayText, screenX, screenY, 255, 0, 0, isHovered and 255 or 200)
+                    end
+                    
+                    if (isHovered and IsDisabledControlJustPressed(0, `INPUT_ATTACK`)) then
+                        ToggleIPL(ipl.hash)
+                        print(displayText)
+                    end
                 end
-                Wait(0)
             end
-        end)
-    end
+            Wait(0)
+        end
+    end)
 end
+exports("EnableIPLViewer", EnableIPLViewer)
+
+function DisableIPLViewer()
+    IsActive = false
+end
+exports("DisableIPLViewer", DisableIPLViewer)
+
+function IsIPLViewerActive()
+    return IsActive
+end
+exports("IsIPLViewerActive", IsIPLViewerActive)
 
 RegisterCommand(Config.Command, function()
-    EnableIPLViewer(not IsEnabled)
-end)
+    if (IsIPLViewerActive()) then
+        DisableIPLViewer()
+    else
+        EnableIPLViewer()
+    end
+end, false)

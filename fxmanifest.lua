@@ -8,10 +8,18 @@ description ""
 version "1.0.0"
 
 files {
-    "data/ipls.json",
+    "data/ipls.json"
+}
+
+shared_scripts {
+    "config.lua",
+    "shared/*.lua"
 }
 
 client_scripts {
-    "config.lua",
     "client/*.lua",
+}
+
+server_scripts {
+    "server/*.lua",
 }

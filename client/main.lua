@@ -142,10 +142,47 @@ function IsIPLViewerActive()
 end
 exports("IsIPLViewerActive", IsIPLViewerActive)
 
-RegisterCommand(Config.Command, function()
+---IPLs Loader
+CreateThread(function()
+    TriggerServerEvent("srb_iplviewer:server:requestIPLStates")
+end)
+
+---Receive IPL states from server and apply them
+RegisterNetEvent("srb_iplviewer:client:receiveIPLStates", function(databaseJSON)
+    local database = json.decode(databaseJSON)
+    for iplHash, activate in pairs(database) do
+        if (activate) then
+            RequestIplHash(iplHash)
+        else
+            RemoveIplHash(iplHash)
+        end
+    end
+end)
+
+---Realtime ipl state update
+RegisterNetEvent("srb_iplviewer:client:updateIPLState", function(iplHash, activate)
+    if (activate) then
+        RequestIplHash(iplHash)
+    else
+        RemoveIplHash(iplHash)
+    end
+end)
+
+---Toggle IPL viewer from server
+RegisterNetEvent("srb_iplviewer:client:toggleIPLViewer", function()
     if (IsIPLViewerActive()) then
         DisableIPLViewer()
     else
         EnableIPLViewer()
     end
-end, false)
+end)
+
+---Enable IPL viewer from server
+RegisterNetEvent("srb_iplviewer:client:enableIPLViewer", function()
+    EnableIPLViewer()
+end)
+
+---Disable IPL viewer from server
+RegisterNetEvent("srb_iplviewer:client:disableIPLViewer", function()
+    DisableIPLViewer()
+end)

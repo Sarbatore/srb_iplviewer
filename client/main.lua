@@ -36,6 +36,28 @@ end
 function EnableIPLViewer()
     if (IsActive) then return end
     IsActive = true
+
+    local ipls = LoadJSONFile("data/ipls.json")
+
+    local validIpls = {}
+    for i = 1, #ipls do
+        local ipl = ipls[i]
+        local iplHash = ResolveHash(ipl)
+        local retval, coords, radius = GetIplBoundingSphere(iplHash)
+
+        if (retval and coords) then
+            local textWidth, textHeight = GetTextSize(ipl, 0.35)
+            IPLS_DATA[ipl] = {
+                hash = iplHash,
+                coords = coords,
+                textWidth = textWidth,
+                textHeight = textHeight,
+            }
+            validIpls[#validIpls + 1] = ipl
+        end
+    end
+
+    IPLS_LIST = validIpls
     
     CreateThread(function()
         while IsActive do
@@ -107,6 +129,11 @@ exports("EnableIPLViewer", EnableIPLViewer)
 
 function DisableIPLViewer()
     IsActive = false
+    IPLS_LIST = {}
+    IPLS_DATA = {}
+    IplsDrawn = {}
+    IplsToDraw = {}
+    IplsToDrawIndex = {}
 end
 exports("DisableIPLViewer", DisableIPLViewer)
 
@@ -114,30 +141,6 @@ function IsIPLViewerActive()
     return IsActive
 end
 exports("IsIPLViewerActive", IsIPLViewerActive)
-
-CreateThread(function()
-    local ipls = LoadJSONFile("data/ipls.json")
-
-    local validIpls = {}
-    for i = 1, #ipls do
-        local ipl = ipls[i]
-        local iplHash = ResolveHash(ipl)
-        local retval, coords, radius = GetIplBoundingSphere(iplHash)
-
-        if (retval and coords) then
-            local textWidth, textHeight = GetTextSize(ipl, 0.35)
-            IPLS_DATA[ipl] = {
-                hash = iplHash,
-                coords = coords,
-                textWidth = textWidth,
-                textHeight = textHeight,
-            }
-            validIpls[#validIpls + 1] = ipl
-        end
-    end
-
-    IPLS_LIST = validIpls
-end)
 
 RegisterCommand(Config.Command, function()
     if (IsIPLViewerActive()) then

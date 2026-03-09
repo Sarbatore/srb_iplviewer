@@ -36,28 +36,6 @@ end
 function EnableIPLViewer()
     if (IsActive) then return end
     IsActive = true
-
-    local ipls = LoadJSONFile("data/ipls.json")
-
-    local validIpls = {}
-    for i = 1, #ipls do
-        local ipl = ipls[i]
-        local iplHash = ResolveHash(ipl)
-        local retval, coords, radius = GetIplBoundingSphere(iplHash)
-
-        if (retval and coords) then
-            local textWidth, textHeight = GetTextSize(ipl, 0.35)
-            IPLS_DATA[ipl] = {
-                hash = iplHash,
-                coords = coords,
-                textWidth = textWidth,
-                textHeight = textHeight,
-            }
-            validIpls[#validIpls + 1] = ipl
-        end
-    end
-
-    IPLS_LIST = validIpls
     
     CreateThread(function()
         while IsActive do
@@ -65,12 +43,13 @@ function EnableIPLViewer()
 
             for i = 1, #IPLS_LIST do
                 local ipl = IPLS_LIST[i]
-                local data = IPLS_DATA[ipl]
-                local distance = #(playerCoords - data.coords)
-                
-                if (IplsDrawn[ipl] and distance > Config.Radius) then
+                local iplData = IPLS_DATA[ipl]
+                local distance = #(playerCoords - iplData.coords)
+                local mustBeDrawn = distance <= Config.Radius and GetScreenCoordFromWorldCoord(iplData.coords.x, iplData.coords.y, iplData.coords.z)
+
+                if (IplsDrawn[ipl] and not mustBeDrawn) then
                     RemoveIplToDraw(ipl)
-                elseif (not IplsDrawn[ipl] and distance <= Config.Radius) then
+                elseif (not IplsDrawn[ipl] and mustBeDrawn) then
                     AddIplToDraw(ipl)
                 end
             end
@@ -102,17 +81,18 @@ function EnableIPLViewer()
                             alreadyHover = true
                         end
                     end
-
+                    
+                    local textToDraw = ipl .. "\n" .. iplData.hash
                     local alpha = isHovered and 255 or 200
                     if (IsIplActiveHash(iplData.hash)) then
-                        DrawText(ipl, screenX, screenY, 0, 255, 0, alpha)
+                        DrawText(textToDraw, screenX, screenY, 0, 255, 0, alpha)
                     else
-                        DrawText(ipl, screenX, screenY, 255, 0, 0, alpha)
+                        DrawText(textToDraw, screenX, screenY, 255, 0, 0, alpha)
                     end
                     
                     if (isHovered and isClickPressed) then
                         ToggleIPL(iplData.hash)
-                        print(ipl)
+                        print("-----IPL-----\n"..textToDraw.."\n-------------")
                     end
                 end
             end
@@ -144,6 +124,40 @@ exports("IsIPLViewerActive", IsIPLViewerActive)
 
 ---IPLs Loader
 CreateThread(function()
+    local ipls = LoadJSONFile("data/ipls.json")
+    local numIplsAtCoords = {}
+    local validIpls = {}
+
+    for i = 1, #ipls do
+        local ipl = ipls[i]
+        local iplHash = ResolveHash(ipl)
+        local retval, coords, radius = GetIplBoundingSphere(iplHash)
+        
+        if (retval) then
+            local x, y, z = math.round(coords.x, 2), math.round(coords.y, 2), math.round(coords.z, 2)
+            
+            -- Add a offset to prevent overlapping text for IPLs with the same coordinates
+            local coordsStr = ("%f, %f, %f"):format(x, y, z)
+            if (not numIplsAtCoords[coordsStr]) then
+                numIplsAtCoords[coordsStr] = 1
+            else
+                z = z + (numIplsAtCoords[coordsStr] * 0.15)
+                numIplsAtCoords[coordsStr] = numIplsAtCoords[coordsStr] + 1
+            end
+
+            local textWidth, textHeight = GetTextSize(ipl, 0.35)
+            IPLS_DATA[ipl] = {
+                hash = iplHash,
+                coords = vector3(x, y, z),
+                textWidth = textWidth,
+                textHeight = textHeight,
+            }
+            validIpls[#validIpls + 1] = ipl
+        end
+    end
+
+    IPLS_LIST = validIpls
+    
     TriggerServerEvent("srb_iplviewer:server:requestIPLStates")
 end)
 

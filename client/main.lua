@@ -60,13 +60,14 @@ function EnableIPLViewer()
 
     CreateThread(function()
         while IsActive do
-            if (IsControlPressed(0, `INPUT_PC_FREE_LOOK`)) then
+            local showMouseCursor = IsControlPressed(0, `INPUT_PC_FREE_LOOK`)
+            local cursorPosition = GetCursorScreenPosition()
+            local isClickPressed = IsDisabledControlJustPressed(0, `INPUT_ATTACK`)
+
+            if (showMouseCursor) then
                 SetMouseCursorThisFrame()
                 DisableControlAction(0, `INPUT_ATTACK`, true)
             end
-
-            local cursorPosition = GetCursorScreenPosition()
-            local isClickPressed = IsDisabledControlJustPressed(0, `INPUT_ATTACK`)
             
             local alreadyHover = false
             for i = 1, #IplsToDraw do
@@ -97,7 +98,7 @@ function EnableIPLViewer()
                 end
             end
 
-            if (#IplsToDraw == 0) then
+            if (#IplsToDraw == 0 and not showMouseCursor) then
                 Wait(250)
             else
                 Wait(0)

@@ -159,11 +159,11 @@ CreateThread(function()
 
     IPLS_LIST = validIpls
     
-    TriggerServerEvent("srb_iplviewer:server:requestIPLStates")
+    TriggerServerEvent("srb_ipl:server:requestIPLStates")
 end)
 
 ---Receive IPL states from server and apply them
-RegisterNetEvent("srb_iplviewer:client:receiveIPLStates", function(databaseJSON)
+RegisterNetEvent("srb_ipl:client:receiveIPLStates", function(databaseJSON)
     local database = json.decode(databaseJSON)
     for iplHash, activate in pairs(database) do
         if (activate) then
@@ -175,7 +175,7 @@ RegisterNetEvent("srb_iplviewer:client:receiveIPLStates", function(databaseJSON)
 end)
 
 ---Realtime ipl state update
-RegisterNetEvent("srb_iplviewer:client:updateIPLState", function(iplHash, activate)
+RegisterNetEvent("srb_ipl:client:updateIPLState", function(iplHash, activate)
     if (activate) then
         RequestIplHash(iplHash)
     else
@@ -184,7 +184,7 @@ RegisterNetEvent("srb_iplviewer:client:updateIPLState", function(iplHash, activa
 end)
 
 ---Toggle IPL viewer from server
-RegisterNetEvent("srb_iplviewer:client:toggleIPLViewer", function()
+RegisterNetEvent("srb_ipl:client:toggleIPLViewer", function()
     if (IsIPLViewerActive()) then
         DisableIPLViewer()
     else
@@ -193,11 +193,11 @@ RegisterNetEvent("srb_iplviewer:client:toggleIPLViewer", function()
 end)
 
 ---Enable IPL viewer from server
-RegisterNetEvent("srb_iplviewer:client:enableIPLViewer", function()
+RegisterNetEvent("srb_ipl:client:enableIPLViewer", function()
     EnableIPLViewer()
 end)
 
 ---Disable IPL viewer from server
-RegisterNetEvent("srb_iplviewer:client:disableIPLViewer", function()
+RegisterNetEvent("srb_ipl:client:disableIPLViewer", function()
     DisableIPLViewer()
 end)

@@ -1,11 +1,11 @@
-function ToggleIPL(hash)
-    local activate = not IsIplActiveHash(hash)
+function ToggleIPL(iplHash)
+    local activate = not IsIplActiveHash(iplHash)
     if (activate) then
-        RequestIplHash(hash)
+        RequestIplHash(iplHash)
     else
-        RemoveIplHash(hash)
+        RemoveIplHash(iplHash)
     end
-    TriggerServerEvent("srb_iplviewer:server:setIPLState", hash, activate)
+    TriggerServerEvent("srb_ipl:server:setIPLState", iplHash, activate)
 end
 
 function ResolveHash(str)

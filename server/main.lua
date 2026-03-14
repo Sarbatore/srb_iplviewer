@@ -5,27 +5,35 @@ local function HasPlayerPermission(playerSource)
     return Config.Users[steamId] == true
 end
 
+---
+---@param iplHash integer
+---@param activate boolean
+function SetIPLState(iplHash, activate)
+    Database[tostring(iplHash)] = activate
+    SaveResourceFile(GetCurrentResourceName(), "data/database.json", json.encode(Database), -1)
+
+    TriggerClientEvent("srb_ipl:client:updateIPLState", -1, iplHash, activate)
+end
+exports("SetIPLState", SetIPLState)
+
 CreateThread(function()
     Database = LoadJSONFile("data/database.json")
 end)
 
-RegisterServerEvent("srb_iplviewer:server:requestIPLStates", function()
+RegisterServerEvent("srb_ipl:server:requestIPLStates", function()
     local _source = source
-    TriggerClientEvent("srb_iplviewer:client:receiveIPLStates", _source, json.encode(Database))
+    TriggerClientEvent("srb_ipl:client:receiveIPLStates", _source, json.encode(Database))
 end)
 
-RegisterServerEvent("srb_iplviewer:server:setIPLState", function(iplHash, activate)
+RegisterServerEvent("srb_ipl:server:setIPLState", function(iplHash, activate)
     local _source = source
     if (not HasPlayerPermission(_source)) then return end
     if (type(activate) ~= "boolean") then return end
 
-    Database[tostring(iplHash)] = activate
-    SaveResourceFile(GetCurrentResourceName(), "data/database.json", json.encode(Database), -1)
-
-    TriggerClientEvent("srb_iplviewer:client:updateIPLState", -1, iplHash, activate)
+    SetIPLState(iplHash, activate)
 end)
 
 RegisterCommand(Config.Command, function(source)
     if (not HasPlayerPermission(source)) then return end
-    TriggerClientEvent("srb_iplviewer:client:toggleIPLViewer", source)
+    TriggerClientEvent("srb_ipl:client:toggleIPLViewer", source)
 end, false)

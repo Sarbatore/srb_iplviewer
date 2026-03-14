@@ -2,7 +2,7 @@
 https://github.com/user-attachments/assets/a58820bc-25c9-4a59-94eb-1e22a6a58835
 
 # Description
-`srb_iplviewer` is a robust tool for real-time saving of IPL visibility; every change is applied to connected players and saved to be applied on each restart or player login.
+`srb_ipl` is a robust tool for real-time saving of IPL visibility; every change is applied to connected players and saved to be applied on each restart or player login.
 
 # Features
 - Efficiently switch the visibility of IPLs
@@ -12,11 +12,26 @@ https://github.com/user-attachments/assets/a58820bc-25c9-4a59-94eb-1e22a6a58835
 - Print IPL on click for easy debugging
 
 # Installation
-1. Drop `srb_iplviewer` in your `resources` folder
-2. Add `ensure srb_iplviewer` in `server.cfg`
+1. Drop `srb_ipl` in your `resources` folder
+2. Add `ensure srb_ipl` in `server.cfg`
 3. Configure user permissions in `config.lua` to allow accesses
 
 # Use
 1. Type `ipl` command
 2. Press `ALT` to enable mouse cursor
 4. `LEFT CLICK` on texts to toggle IPL and print in console
+
+# For developpers
+If you want to apply replicated and persistent changes from ipls to your scripts, you can use the following export.
+
+## Function signature **(serverside)**
+```lua
+---@param iplHash integer
+---@param activate boolean
+function SetIPLState(iplHash, activate)
+```
+
+## Example
+```lua
+exports.srb_ipl:SetIPLState(`mp_jessicacamp_val`, true)
+```

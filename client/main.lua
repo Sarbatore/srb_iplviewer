@@ -110,8 +110,6 @@ exports("EnableIPLViewer", EnableIPLViewer)
 
 function DisableIPLViewer()
     IsActive = false
-    IPLS_LIST = {}
-    IPLS_DATA = {}
     IplsDrawn = {}
     IplsToDraw = {}
     IplsToDrawIndex = {}
@@ -123,64 +121,17 @@ function IsIPLViewerActive()
 end
 exports("IsIPLViewerActive", IsIPLViewerActive)
 
----IPLs Loader
-CreateThread(function()
-    local ipls = LoadJSONFile("data/ipls.json")
-    local numIplsAtCoords = {}
-    local validIpls = {}
-
-    for i = 1, #ipls do
-        local ipl = ipls[i]
-        local iplHash = ResolveHash(ipl)
-        local retval, coords, radius = GetIplBoundingSphere(iplHash)
-        
-        if (retval) then
-            local x, y, z = math.round(coords.x, 2), math.round(coords.y, 2), math.round(coords.z, 2)
-            
-            -- Add a offset to prevent overlapping text for IPLs with the same coordinates
-            local coordsStr = ("%f, %f, %f"):format(x, y, z)
-            if (not numIplsAtCoords[coordsStr]) then
-                numIplsAtCoords[coordsStr] = 1
-            else
-                z = z + (numIplsAtCoords[coordsStr] * 0.15)
-                numIplsAtCoords[coordsStr] = numIplsAtCoords[coordsStr] + 1
-            end
-
-            local textWidth, textHeight = GetTextSize(ipl, 0.35)
-            IPLS_DATA[ipl] = {
-                hash = iplHash,
-                coords = vector3(x, y, z),
-                textWidth = textWidth,
-                textHeight = textHeight,
-            }
-            validIpls[#validIpls + 1] = ipl
-        end
-    end
-
-    IPLS_LIST = validIpls
-    
-    TriggerServerEvent("srb_ipl:server:requestIPLStates")
-end)
-
 ---Receive IPL states from server and apply them
 RegisterNetEvent("srb_ipl:client:receiveIPLStates", function(databaseJSON)
     local database = json.decode(databaseJSON)
     for iplHash, activate in pairs(database) do
-        if (activate) then
-            RequestIplHash(iplHash)
-        else
-            RemoveIplHash(iplHash)
-        end
+        SetIplHashVisible(tonumber(iplHash), activate)
     end
 end)
 
 ---Realtime ipl state update
 RegisterNetEvent("srb_ipl:client:updateIPLState", function(iplHash, activate)
-    if (activate) then
-        RequestIplHash(iplHash)
-    else
-        RemoveIplHash(iplHash)
-    end
+    SetIplHashVisible(iplHash, activate)
 end)
 
 ---Toggle IPL viewer from server
@@ -201,3 +152,49 @@ end)
 RegisterNetEvent("srb_ipl:client:disableIPLViewer", function()
     DisableIPLViewer()
 end)
+
+local function Init()
+    CreateThread(function()
+        local ipls = LoadJSONFile("data/ipls.json")
+        local numIplsAtCoords = {}
+        local validIpls = {}
+
+        for i = 1, #ipls do
+            local ipl = ipls[i]
+            local iplHash = ResolveHash(ipl)
+            local retval, coords, radius = GetIplBoundingSphere(iplHash)
+            
+            if (retval) then
+                local x, y, z = math.round(coords.x, 2), math.round(coords.y, 2), math.round(coords.z, 2)
+                
+                -- Add a offset to prevent overlapping text for IPLs with the same coordinates
+                local coordsStr = ("%f, %f, %f"):format(x, y, z)
+                if (not numIplsAtCoords[coordsStr]) then
+                    numIplsAtCoords[coordsStr] = 1
+                else
+                    z = z + (numIplsAtCoords[coordsStr] * 0.15)
+                    numIplsAtCoords[coordsStr] = numIplsAtCoords[coordsStr] + 1
+                end
+
+                local textWidth, textHeight = GetTextSize(ipl, 0.35)
+                IPLS_DATA[ipl] = {
+                    hash = iplHash,
+                    coords = vector3(x, y, z),
+                    textWidth = textWidth,
+                    textHeight = textHeight,
+                }
+                validIpls[#validIpls + 1] = ipl
+            end
+        end
+
+        IPLS_LIST = validIpls
+        
+        TriggerServerEvent("srb_ipl:server:requestIPLStates")
+    end)
+end
+
+if (Config.Debug) then
+	Init()
+else
+	RegisterNetEvent(Config.InitEvent, Init)
+end

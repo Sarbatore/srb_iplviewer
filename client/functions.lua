@@ -11,3 +11,12 @@ end
 function ResolveHash(str)
     return str:match("^0x(%x+)$") and tonumber(str) or joaat(str)
 end
+
+function SetIplHashVisible(iplHash, visible)
+    if (IsIplActiveHash(iplHash) == visible) then return end
+    if (visible) then
+        RequestIplHash(iplHash)
+    else
+        RemoveIplHash(iplHash)
+    end
+end
